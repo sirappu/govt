@@ -1,3 +1,6 @@
+sed 's/\\n/\n/g' input_file > output_file
+
+
 1.
 
 curl --request POST --url https://chatgpt-api8.p.rapidapi.com/ --header "X-RapidAPI-Host: chatgpt-api8.p.rapidapi.com" --header "X-RapidAPI-Key: 608b561fe2msh17383f9055eb703p108cebjsnaf37c18370f3" --header "content-type: application/json" --data "[ { \"content\": \"Hello! I'm an AI assistant bot based on ChatGPT 3. How may I help you?\", \"role\": \"system\" }, { \"content\": \"who won the super bowl 2019?\", \"role\": \"user\" } ]"

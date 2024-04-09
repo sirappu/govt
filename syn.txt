@@ -1,0 +1,335 @@
+//ws
+#include<stdio.h>
+#include<stdlib.h>
+#include<pthread.h>
+#include<semaphore.h>
+
+#define MAX 6
+#define N 3
+
+sem_t entering_diner,enter_done,exiting_diner,exit_done;
+sem_t mutex_enter,mutex_exit;
+int count_enter = 0;
+int count_exit = 0;
+int c = 0;
+
+void* diner_thread(void* args){
+
+        sem_wait(&entering_diner);      /* Waits for the Front Door to open*/
+        printf("Entering Diners \n");
+        sem_wait(&mutex_enter);
+        count_enter++;
+        c++;
+        printf("Count Enter : %d\n",count_enter);
+        if(count_enter != N)
+                sem_post(&entering_diner);
+        else
+                sem_post(&enter_done);
+        sem_post(&mutex_enter);
+
+        sem_wait(&exiting_diner);
+        printf("\nEat\n");
+        sem_post(&exiting_diner);
+
+        sem_wait(&mutex_exit);
+        //printf("Count : %d %d\n",count_exit,count_exit==N);
+        count_exit++;
+        if((count_exit) == N)
+                sem_post(&exit_done);
+        sem_post(&mutex_exit);
+}
+
+void* restaurant_thread(void* args){
+
+        while(1){
+
+                printf("Front Door Opened!\n");
+                sem_post(&entering_diner);
+                if (c==MAX){
+                        printf("Front Door Closed\n");
+                        /*sem_post(&enter_done);
+                        sem_post(&exiting_diner);
+                        sem_post(&exit_done);
+                        */break;
+                }
+                sem_wait(&enter_done);
+                printf("Front Door Closed\n");
+
+
+
+                printf("Serving Food\n");
+                printf("Back Door Opened!\n");
+                sem_post(&exiting_diner);
+
+                sem_wait(&exit_done);
+                sem_wait(&exiting_diner);
+                sem_wait(&mutex_exit);
+                printf("Count Exit : %d\n",count_enter);
+                sem_post(&mutex_exit);
+                printf("\nBack Door Closed!\n");
+
+                sem_wait(&mutex_exit);
+                count_exit = 0;
+                printf("Setting Count_Exit to %d\n",count_exit);
+                sem_post(&mutex_exit);
+
+                sem_wait(&mutex_enter);
+                count_enter = 0;
+                printf("Setting Count_Enter to %d\n",count_exit);
+                sem_post(&mutex_enter);
+        }
+}
+
+
+int main(){
+
+        sem_init(&entering_diner,0,0);
+        sem_init(&enter_done,0,0);
+        sem_init(&exiting_diner,0,0);
+        sem_init(&exit_done,0,0);
+
+        sem_init(&mutex_enter,0,1);
+        sem_init(&mutex_exit,0,1);
+
+        pthread_t diners[MAX];
+        pthread_t restaurant;
+
+        for(int i=0;i<MAX;i++)
+                pthread_create(&diners[i],NULL,diner_thread,NULL);
+
+        pthread_create(&restaurant,NULL,restaurant_thread,NULL);
+
+        for(int i=0;i<MAX;i++)
+                pthread_join(diners[i],NULL);
+        pthread_join(restaurant,NULL);
+
+}
+
+
+
+
+
+
+
+//rw
+#include <stdio.h>
+#include <pthread.h>
+#include <semaphore.h>
+#include <unistd.h>
+
+#define MAX_READERS 5
+#define MAX_WRITERS 5
+
+sem_t mutex, rw_mutex;
+int readers_count = 0;
+
+void *reader(void *arg) {
+    int reader_id = *((int *)arg);
+    while (1) {
+        sem_wait(&mutex);
+        readers_count++;
+        if (readers_count == 1) {
+            sem_wait(&rw_mutex);
+        }
+        sem_post(&mutex);
+
+        // Reading Section
+        printf("Reader %d is reading\n", reader_id);
+        sleep(1); // Simulating reading
+
+        sem_wait(&mutex);
+        readers_count--;
+        if (readers_count == 0) {
+            sem_post(&rw_mutex);
+        }
+        sem_post(&mutex);
+
+        // Outside Reading Section
+        printf("Reader %d finished reading\n", reader_id);
+        sleep(2); // Reader waits before reading again
+    }
+}
+
+void *writer(void *arg) {
+    int writer_id = *((int *)arg);
+    while (1) {
+        sem_wait(&rw_mutex);
+
+        // Writing Section
+        printf("Writer %d is writing\n", writer_id);
+        sleep(2); // Simulating writing
+
+        // Outside Writing Section
+        printf("Writer %d finished writing\n", writer_id);
+
+        sem_post(&rw_mutex);
+
+        sleep(3); // Writer waits before writing again
+    }
+}
+
+int main() {
+    sem_init(&mutex, 0, 1);
+    sem_init(&rw_mutex, 0, 1);
+
+    pthread_t readers[MAX_READERS], writers[MAX_WRITERS];
+    int i;
+
+    // Create reader threads
+    for (i = 0; i < MAX_READERS; i++) {
+        int *reader_id = malloc(sizeof(int));
+        *reader_id = i + 1;
+        pthread_create(&readers[i], NULL, reader, (void *)reader_id);
+    }
+
+    // Create writer threads
+    for (i = 0; i < MAX_WRITERS; i++) {
+        int *writer_id = malloc(sizeof(int));
+        *writer_id = i + 1;
+        pthread_create(&writers[i], NULL, writer, (void *)writer_id);
+    }
+
+    // Wait for all threads to finish
+    for (i = 0; i < MAX_READERS; i++) {
+        pthread_join(readers[i], NULL);
+    }
+    for (i = 0; i < MAX_WRITERS; i++) {
+        pthread_join(writers[i], NULL);
+    }
+
+    sem_destroy(&mutex);
+    sem_destroy(&rw_mutex);
+
+    return 0;
+}
+
+
+
+
+
+
+//dinners-philosopher
+#include <pthread.h>
+#include <semaphore.h>
+#include <stdio.h>
+
+#define N 5
+#define THINKING 2
+#define HUNGRY 1
+#define EATING 0
+#define LEFT (phnum + 4) % N
+#define RIGHT (phnum + 1) % N
+
+int state[N];
+int phil[N] = { 0, 1, 2, 3, 4 };
+
+sem_t mutex;
+sem_t S[N];
+
+void test(int phnum)
+{
+	if (state[phnum] == HUNGRY
+		&& state[LEFT] != EATING
+		&& state[RIGHT] != EATING) {
+		// state that eating
+		state[phnum] = EATING;
+
+		sleep(2);
+
+		printf("Philosopher %d takes fork %d and %d\n",
+					phnum + 1, LEFT + 1, phnum + 1);
+
+		printf("Philosopher %d is Eating\n", phnum + 1);
+
+		// sem_post(&S[phnum]) has no effect
+		// during takefork
+		// used to wake up hungry philosophers
+		// during putfork
+		sem_post(&S[phnum]);
+	}
+}
+
+// take up chopsticks
+void take_fork(int phnum)
+{
+
+	sem_wait(&mutex);
+
+	// state that hungry
+	state[phnum] = HUNGRY;
+
+	printf("Philosopher %d is Hungry\n", phnum + 1);
+
+	// eat if neighbours are not eating
+	test(phnum);
+
+	sem_post(&mutex);
+
+	// if unable to eat wait to be signalled
+	sem_wait(&S[phnum]);
+
+	sleep(1);
+}
+
+// put down chopsticks
+void put_fork(int phnum)
+{
+
+	sem_wait(&mutex);
+
+	// state that thinking
+	state[phnum] = THINKING;
+
+	printf("Philosopher %d putting fork %d and %d down\n",
+		phnum + 1, LEFT + 1, phnum + 1);
+	printf("Philosopher %d is thinking\n", phnum + 1);
+
+	test(LEFT);
+	test(RIGHT);
+
+	sem_post(&mutex);
+}
+
+void* philosopher(void* num)
+{
+
+	while (1) {
+
+		int* i = num;
+
+		sleep(1);
+
+		take_fork(*i);
+
+		sleep(0);
+
+		put_fork(*i);
+	}
+}
+
+int main()
+{
+
+	int i;
+	pthread_t thread_id[N];
+
+	// initialize the semaphores
+	sem_init(&mutex, 0, 1);
+
+	for (i = 0; i < N; i++)
+
+		sem_init(&S[i], 0, 0);
+
+	for (i = 0; i < N; i++) {
+
+		// create philosopher processes
+		pthread_create(&thread_id[i], NULL,
+					philosopher, &phil[i]);
+
+		printf("Philosopher %d is thinking\n", i + 1);
+	}
+
+	for (i = 0; i < N; i++)
+
+		pthread_join(thread_id[i], NULL);
+}

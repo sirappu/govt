@@ -1,4 +1,7 @@
+
 sed 's/\\n/\n/g' input_file > output_file
+
+curl --request POST --url https://mail-sender-api1.p.rapidapi.com/ --header "X-RapidAPI-Host: mail-sender-api1.p.rapidapi.com" --header "X-RapidAPI-Key: 89e9b47e63msh4af5ad5ebc73abap10ba2cjsn810d479e3013" --header "content-type: application/json" --data "{\"sendto\": \"22pt02@psgtech.ac.in\", \"name\": \"Custom Name Here\", \"replyTo\": \"Your Email address where users can send their reply\", \"ishtml\": \"false\", \"title\": \"Put Your Title Here\", \"body\": \"$(<path_to_your_file>)\"}"
 
 
 1.

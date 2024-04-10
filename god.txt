@@ -32,3 +32,6 @@ curl --request POST --url https://chatgpt-api8.p.rapidapi.com/ --header "X-Rapid
 
 last.
 curl --request POST --url https://chatgpt-api8.p.rapidapi.com/ --header "X-RapidAPI-Host: chatgpt-api8.p.rapidapi.com" --header "X-RapidAPI-Key: bf3a11faa4msh9e77969c697eaa2p15ac42jsncc4161484af2" --header "content-type: application/json" --data "[ { \"content\": \"Hello! I'm an AI assistant bot based on ChatGPT 3. How may I help you?\", \"role\": \"system\" }, { \"content\": \"who won the super bowl 2019?\", \"role\": \"user\" } ]"
+
+
+curl --request POST --url https://copilot5.p.rapidapi.com/copilot --header 'X-RapidAPI-Host: copilot5.p.rapidapi.com' --header 'X-RapidAPI-Key: 050b6d91b3msh05e6b5103262530p162d27jsnb99eb6368ab9' --header 'content-type: application/json' --data '{"message": "Hello", "conversation_id": null, "tone": "BALANCED", "markdown": false, "photo_url": null}'
